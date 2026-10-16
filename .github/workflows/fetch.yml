@@ -13,11 +13,8 @@ jobs:
       - run: |
           mkdir out
           W=https://dnoadrian.at/wishly
-          wget() { curl -sSL -m 40 -H 'Sec-Fetch-Site: same-origin' -o "out/$1" -w "$1 %{http_code} %{size_download}\n" "$W/proxy?url=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$2")" || true; }
           curl -sS -m 20 "$W/" | grep -o 'WISHLY V[0-9.]*' > out/version.txt || true
-          wget w-clever.html 'https://www.clevertronic.de/kaufen/handy-kaufen/apple/iphone-15-pro/auswahl/19945/apple-iphone-15-pro-256gb-titan-schwarz?t=1&ok=11&mfvi=45211' >> out/codes.txt
-          wget w-amazon.html 'https://www.amazon.de/Raspberry-Pi-5-16-GB/dp/B0DSPYPKRG/ref=mp_s_a_1_1?crid=1X1D74NE8O725&keywords=raspberry+pi+5+16+gb&qid=1791618410&sr=8-1' >> out/codes.txt
-          wget w-amazon-offers.html 'https://www.amazon.de/gp/product/ajax/aodAjaxMain/?asin=B0DSPYPKRG&pc=dp' >> out/codes.txt
+          curl -sS -m 20 -X POST -H 'Content-Type: application/json' -d '{"user":"x","password":"x"}' -w ' %{http_code}' "$W/api/admin/login" > out/admin.txt || true
           ls -la out; cat out/*.log 2>/dev/null || true
       - run: |
           mkdir -p fetched && mv out/* fetched/
