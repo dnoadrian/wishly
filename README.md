@@ -51,16 +51,23 @@ Der Speicher für die Konten (Durable Object `Account`) und die Route `dnoadrian
 
 ## Admin
 
-Ganz unten auf der Seite: **ADMIN** → Name `Adrian` + Passwort.
-Zeigt alle Benutzer (Listen, Produkte, Geräte, erstellt, zuletzt aktiv) und kann einzelne Benutzer samt Listen löschen.
-Nach 5 falschen Passwörtern ist der Admin-Login 15 Minuten gesperrt.
+Name und Passwort fürs Admin-Panel stehen **nicht** im Code, sondern als Secrets beim Worker in Cloudflare
+(Worker → Settings → Variables and Secrets → Typ „Secret“):
 
-Passwort ändern: in Cloudflare beim Worker unter Settings → Variables and Secrets ein Secret `ADMIN_PASSWORD` anlegen.
+- `ADMIN_USER` – Name des Wishly-Kontos, das Admin ist (nur dieses Konto sieht unten den Knopf **ADMIN**)
+- `ADMIN_PASSWORD` – Passwort fürs Admin-Panel
+
+Das Panel zeigt alle Benutzer (Listen, Produkte, Geräte, erstellt, zuletzt aktiv) und kann einzelne Benutzer samt Listen löschen.
+Nach 5 falschen Passwörtern ist der Admin-Login 15 Minuten gesperrt.
 Benutzer erscheinen in der Liste, sobald sie Wishly (wieder) öffnen oder sich anmelden.
 
 ## Fehlersuche
 
 - **Preis falsch oder fehlt:** auf den Preis tippen → zeigt, woher er stammt; sonst „PREIS EINGEBEN“.
+- **„shop blockiert die automatische abfrage“:** der Shop hat einen Bot-Schutz (z.B. Cloudflare-Prüfung).
+  Das Produkt wird trotzdem angelegt, den Preis einmal selbst eingeben.
+- **Amazon ohne Hauptangebot** (ausverkauft): es wird das günstigste Angebot aus „Alle Angebote“ genommen
+  (neu vor gebraucht); gibt es keins, steht „ausverkauft“ beim Produkt.
 
 ## Hinweis
 

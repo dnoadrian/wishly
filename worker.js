@@ -107,11 +107,14 @@ async function api(request, env, url) {
     headers: { 'Content-Type': 'application/json', 'X-Token': token },
     body: request.method === 'GET' ? undefined : JSON.stringify({ ...body, user }),
   });
+  const seen = res.ok && (route === 'login' || route === 'register' || (route === 'data' && request.method === 'GET'));
+  if (!seen) return new Response(res.body, { status: res.status, headers: res.headers });
   // Benutzer für das Admin-Panel vermerken (Name + zuletzt aktiv)
-  if (res.ok && (route === 'login' || route === 'register' || (route === 'data' && request.method === 'GET'))) {
-    await registry(env).fetch('https://registry/touch', { method: 'POST', body: JSON.stringify({ name: user }) });
-  }
-  return new Response(res.body, { status: res.status, headers: res.headers });
+  await registry(env).fetch('https://registry/touch', { method: 'POST', body: JSON.stringify({ name: user }) });
+  // nur das Admin-Konto bekommt den ADMIN-Knopf zu sehen
+  const out = await res.json();
+  if (isAdminName(env, user)) out.admin = true;
+  return json(out);
 }
 
 const account = (env, name) => env.ACCOUNTS.get(env.ACCOUNTS.idFromName(name.toLowerCase()));
@@ -119,9 +122,9 @@ const registry = (env) => env.REGISTRY.get(env.REGISTRY.idFromName('registry'));
 
 /* ------------------------------------------------------------ Admin */
 
-// Admin-Zugang. Passwort ändern: in Cloudflare beim Worker ein Secret ADMIN_PASSWORD anlegen.
-const ADMIN_USER = 'adrian';
-const ADMIN_PASSWORD = '1234';
+// Admin-Zugang steht NICHT im Code, sondern in Cloudflare (Worker → Settings → Variables and Secrets):
+// ADMIN_USER = Name des Admin-Kontos, ADMIN_PASSWORD = Passwort fürs Admin-Panel
+const isAdminName = (env, name) => !!env.ADMIN_USER && String(name).trim().toLowerCase() === env.ADMIN_USER.trim().toLowerCase();
 
 async function admin(request, env, url) {
   const route = url.pathname.slice('/api/admin/'.length);
@@ -136,10 +139,10 @@ async function admin(request, env, url) {
   const reg = registry(env);
   const call = (path, data) => reg.fetch(`https://registry/${path}`, { method: 'POST', body: JSON.stringify(data || {}) });
 
+  if (!env.ADMIN_USER || !env.ADMIN_PASSWORD) return json({ error: 'admin ist nicht eingerichtet (secrets in cloudflare fehlen)' }, 503);
+
   if (route === 'login') {
-    const ok =
-      sameString(String(body.user || '').trim().toLowerCase(), ADMIN_USER) &&
-      sameString(String(body.password || ''), env.ADMIN_PASSWORD || ADMIN_PASSWORD);
+    const ok = isAdminName(env, body.user || '') && sameString(String(body.password || ''), env.ADMIN_PASSWORD);
     const res = await call('admin-login', { ok });
     return new Response(res.body, { status: res.status, headers: res.headers });
   }
@@ -158,7 +161,7 @@ async function admin(request, env, url) {
     const users = await Promise.all(
       names.map(async (u) => {
         const stats = await (await account(env, u.name).fetch('https://account/internal/stats')).json();
-        return { ...u, ...stats };
+        return { ...u, ...stats, admin: isAdminName(env, u.name) };
       }),
     );
     // Konten, die inzwischen gelöscht/leer sind, aus der Übersicht nehmen
@@ -166,10 +169,22 @@ async function admin(request, env, url) {
     await Promise.all(gone.map((u) => call('remove', { name: u.name })));
     return json({ users: users.filter((u) => u.exists).sort((a, b) => (b.seen || 0) - (a.seen || 0)) });
   }
+  // Diagnose: was bekommt der Worker von einem Shop? (nur für Admins)
+  if (route === 'fetch') {
+    const target = url.searchParams.get('url') || '';
+    if (!/^https?:\/\//i.test(target)) return json({ error: '?url= fehlt' }, 400);
+    try {
+      const res = await fetch(target, { redirect: 'follow', headers: HEADERS, signal: AbortSignal.timeout(15000) });
+      const html = await res.text();
+      return json({ status: res.status, url: res.url, length: html.length, html: html.slice(0, 3e6) });
+    } catch (e) {
+      return json({ error: e.message }, 502);
+    }
+  }
   if (route === 'delete') {
     const name = String(body.user || '').trim();
     if (!USERNAME.test(name)) return json({ error: 'ungültiger benutzer' }, 400);
-    if (name.toLowerCase() === ADMIN_USER) return json({ error: 'das admin-konto kann nicht gelöscht werden' }, 400);
+    if (isAdminName(env, name)) return json({ error: 'das admin-konto kann nicht gelöscht werden' }, 400);
     await account(env, name).fetch('https://account/internal/wipe', { method: 'POST', body: '{}' });
     await call('remove', { name });
     return json({ ok: true });
