@@ -2,10 +2,14 @@ name: fetch-test
 on:
   push:
     branches: [claude/gaming-wishlist-price-tracker-wdo67z]
+permissions:
+  contents: write
 jobs:
   fetch:
+    if: "!contains(github.event.head_commit.message, '[pages]')"
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - run: |
           mkdir out
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36'
@@ -14,8 +18,8 @@ jobs:
           get amazon.html 'https://www.amazon.de/Raspberry-Pi-5-16-GB/dp/B0DSPYPKRG'
           get amazon2.html 'https://www.amazon.de/dp/B0DSPYPKRG?th=1&psc=1'
           get amazon-offers.html 'https://www.amazon.de/gp/product/ajax/aodAjaxMain/ref=dp_aod_unknown_mbc?asin=B0DSPYPKRG&pc=dp'
-          ls -la out
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pages
-          path: out
+          ls -la out; cat out/*.log 2>/dev/null || true
+      - run: |
+          mkdir -p fetched && mv out/* fetched/
+          git config user.name ci && git config user.email ci@example.com
+          git add fetched && git commit -m "[pages] abgerufene Seiten" && git push
