@@ -1,0 +1,3 @@
+w-clever.html 403 6301
+w-amazon.html 200 1538595
+w-amazon-offers.html 200 29766
