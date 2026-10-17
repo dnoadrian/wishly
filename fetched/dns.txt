@@ -1,0 +1,5 @@
+104.26.8.173
+172.67.68.133
+104.26.9.173
+"apple-domain-verification=lPjslzHJMn85S4YO"
+"v=spf1 a mx include:amazonses.com include:_spf.google.com ~all"

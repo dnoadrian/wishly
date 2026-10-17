@@ -1,3 +1,15 @@
-w-clever.html 403 6301
-w-amazon.html 200 1538595
-w-amazon-offers.html 200 29766
+c1.html 403 6238 text/html; charset=UTF-8
+c2.html 403 6259 text/html; charset=UTF-8
+c3.html 000 0 
+c3.html fail
+robots.txt 403 5774 text/html; charset=UTF-8
+sitemap.xml 403 5756 text/html; charset=UTF-8
+api1.json 403 5774 text/html; charset=UTF-8
+api2.json 403 5723 text/html; charset=UTF-8
+shop.html 000 0 
+shop.html fail
+gshop.html 200 92618 text/html; charset=UTF-8
+idealo.html 403 3887 text/html
+bing.html 200 173774 text/html; charset=utf-8
+ddg.html 202 14269 text/html; charset=UTF-8
+jina.txt 200 586 text/plain; charset=utf-8
