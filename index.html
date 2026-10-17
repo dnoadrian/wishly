@@ -338,7 +338,7 @@
     </section>
   </div>
 
-  <footer>WISHLY V1.7 <button type="button" class="btn btn--small" id="admin-open" hidden>ADMIN</button></footer>
+  <footer>WISHLY V1.8 <button type="button" class="btn btn--small" id="admin-open" hidden>ADMIN</button></footer>
 
   <section class="box admin" id="admin" hidden aria-label="Admin">
     <div class="section-title">
@@ -2257,6 +2257,19 @@ const runningAsApp = () =>
   matchMedia('(display-mode: fullscreen)').matches ||
   matchMedia('(display-mode: minimal-ui)').matches ||
   navigator.standalone === true;
+// Installierte App auf Android: Links nicht im eingebetteten Fenster (Custom Tab), sondern direkt in der Chrome-App öffnen
+function chromeIntent(href) {
+  const u = new URL(href);
+  const fallback = encodeURIComponent(u.href);
+  return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+}
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="http"]');
+  if (!a || !runningAsApp() || !/Android/i.test(navigator.userAgent)) return;
+  e.preventDefault();
+  location.href = chromeIntent(a.href);
+});
+
 const storedInstalled = () => {
   try {
     return localStorage.getItem(INSTALLED_KEY) === '1';
