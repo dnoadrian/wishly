@@ -336,7 +336,7 @@
     </section>
   </div>
 
-  <footer>WISHLY V1.5 <button type="button" class="btn btn--small" id="admin-open" hidden>ADMIN</button></footer>
+  <footer>WISHLY V1.6 <button type="button" class="btn btn--small" id="admin-open" hidden>ADMIN</button></footer>
 
   <section class="box admin" id="admin" hidden aria-label="Admin">
     <div class="section-title">
@@ -2003,6 +2003,13 @@ async function addItem(url) {
     const conv = item.currency && item.currency !== 'EUR' ? ` (umgerechnet aus ${item.currency})` : '';
     status(`hinzugefügt: ${item.title} → ${eur(item.price)}${conv}`, item.price == null ? 'err' : 'ok');
     $('#url').value = '';
+    // kein Preis vom Shop (z.B. Bot-Schutz): gleich nachfragen statt "—" stehen zu lassen
+    if (item.price == null) {
+      const why = /blockiert/.test(item.error || '')
+        ? `${item.shop} lässt keine automatische preisabfrage zu.`
+        : `für ${item.shop} wurde kein preis gefunden.`;
+      enterPrice(item, `${why}\nwie viel kostet "${item.title}"?`);
+    }
   } catch (e) {
     status(`fehler: ${e.message}`, 'err');
   } finally {
@@ -2057,10 +2064,10 @@ function refreshAll(allLists = false) {
   return refreshing;
 }
 
-async function enterPrice(item) {
+async function enterPrice(item, intro) {
   const input = await ask({
     title: 'preis',
-    text: `preis in euro für "${item.title}":`,
+    text: intro || `preis in euro für "${item.title}":`,
     input: { value: item.price != null ? item.price.toFixed(2).replace('.', ',') : '', placeholder: 'z.b. 34,90', mode: 'decimal' },
     hint: item.manualPrice != null ? 'leer lassen = eintrag löschen' : '',
     ok: 'speichern',

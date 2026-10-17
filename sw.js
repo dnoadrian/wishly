@@ -4,7 +4,7 @@
  * - die Seite kommt immer zuerst frisch vom Server (neue Versionen sofort da)
  * - Preise (/proxy), Konten (/api) und Diagnose werden NIE zwischengespeichert
  */
-const CACHE = 'wishly-v9';
+const CACHE = 'wishly-v10';
 const SHELL = ['./', 'favicon.svg', 'favicon-32.png', 'icon-192.png', 'icon-512.png', 'manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
