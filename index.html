@@ -189,6 +189,8 @@
     50%       { box-shadow: 0 0 22px rgba(255,255,255,0.55), 0 0 44px rgba(255,255,255,0.15); }
   }
   .card__img { position: relative; aspect-ratio: 4 / 3; background: #0d0d0d; border-bottom: 2px solid var(--border); overflow: hidden; }
+  .card__img { cursor: pointer; transition: box-shadow .2s, border-color .2s; }
+  .card__img.holding { border-bottom-color: var(--green); box-shadow: inset 0 0 0 2px var(--green); }
   .card__img img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; image-rendering: auto; }
   .card__img.noimg::after {
     content: 'KEIN BILD'; position: absolute; inset: 0; display: grid; place-items: center;
@@ -336,7 +338,7 @@
     </section>
   </div>
 
-  <footer>WISHLY V1.6 <button type="button" class="btn btn--small" id="admin-open" hidden>ADMIN</button></footer>
+  <footer>WISHLY V1.7 <button type="button" class="btn btn--small" id="admin-open" hidden>ADMIN</button></footer>
 
   <section class="box admin" id="admin" hidden aria-label="Admin">
     <div class="section-title">
@@ -879,9 +881,13 @@ window.WLUtil = WLUtil;
     let amazonInfo = amazon ? strip(extractAmazon(doc)) : {};
     // Amazon ohne hervorgehobenes Angebot (ausverkauft / nur Drittanbieter): günstigstes Angebot aus "Alle Angebote"
     if (amazon && amazonInfo.price == null) {
+      // Drittanbieter verlangen oft ein Vielfaches: nicht als Preis nehmen, nur als Hinweis zeigen
       const offer = await amazonOffers(u, html).catch(() => null);
-      if (offer) amazonInfo = { ...amazonInfo, price: offer.price, currency: offer.currency, offerNote: offer.note };
-      else amazonInfo.soldOut = true;
+      amazonInfo.soldOut = true;
+      if (offer) {
+        const amount = new Intl.NumberFormat('de-AT', { style: 'currency', currency: offer.currency || 'EUR' }).format(offer.price);
+        amazonInfo.offerNote = `${offer.used ? 'gebraucht' : 'andere verkäufer'} ab ${amount}`;
+      }
     }
 
     // Reihenfolge: genaueste Quelle zuerst, spätere füllen nur Lücken
@@ -953,7 +959,7 @@ window.WLUtil = WLUtil;
       gtin: p.gtin || null,
       mpn: p.mpn || null,
       soldOut: !!p.soldOut && p.price == null,
-      offerNote: p.offerNote || null,
+      offerNote: p.soldOut ? p.offerNote || null : null,
       shop: u.hostname.replace(/^www\./, ''),
       url,
     };
@@ -1544,7 +1550,7 @@ window.WLUtil = WLUtil;
     if (!offers.length) return null;
     const pool = offers.some((o) => !o.used) ? offers.filter((o) => !o.used) : offers;
     const best = pool.reduce((a, b) => (b.price < a.price ? b : a));
-    return { ...best, note: best.used ? 'nur gebraucht erhältlich' : 'nur bei anderen verkäufern' };
+    return best;
   }
 
   function extractAmazon(doc) {
@@ -1640,13 +1646,13 @@ window.WLUtil = WLUtil;
       rateApprox: approx,
       shop: p.shop,
       checkedAt: new Date().toISOString(),
-      note: p.offerNote || null,
+      note: null,
       blocked: !!p.blocked,
       soldOut: !!p.soldOut,
       error: p.blocked
         ? 'shop blockiert die automatische abfrage – preis selbst eingeben'
         : p.soldOut
-          ? 'ausverkauft – kein angebot'
+          ? `bei amazon ausverkauft${p.offerNote ? ` – ${p.offerNote}` : ''}`
           : p.price == null
             ? 'kein preis gefunden'
             : unknown
@@ -1679,10 +1685,8 @@ window.WLUtil = WLUtil;
       patch.detectedPrice = patch.blocked || patch.soldOut ? patch.price : (patch.price ?? item.detectedPrice ?? null);
       // blockierte Seite kennt nur den Namen aus dem Link: bisherigen Namen/Bild behalten
       if (patch.blocked && item.title) delete patch.title;
-      if (patch.price != null && isReliable(patch.priceSource)) {
-        patch.manualPrice = null; // Shop liefert sicher einen Preis -> der gilt
-      } else if (item.manualPrice != null) {
-        // kein oder nur geratener Preis: selbst eingetragener Preis gilt
+      if (item.manualPrice != null) {
+        // selbst eingetragener Preis gilt immer, bis man ihn wieder löscht
         patch.price = item.manualPrice;
         patch.error = null;
       } else if (patch.price == null && !patch.blocked && !patch.soldOut) patch.price = item.price; // bekannten Preis behalten
@@ -1939,6 +1943,7 @@ function buildCard(item) {
   if (href) link.href = href;
   else link.remove();
   $('.card__rm', el).onclick = () => removeItem(item);
+  holdToEdit($('.card__img', el), item);
   return el;
 }
 
@@ -2007,7 +2012,9 @@ async function addItem(url) {
     if (item.price == null) {
       const why = /blockiert/.test(item.error || '')
         ? `${item.shop} lässt keine automatische preisabfrage zu.`
-        : `für ${item.shop} wurde kein preis gefunden.`;
+        : item.error && item.error !== 'kein preis gefunden'
+          ? `${item.error}.`
+          : `für ${item.shop} wurde kein preis gefunden.`;
       enterPrice(item, `${why}\nwie viel kostet "${item.title}"?`);
     }
   } catch (e) {
@@ -2064,12 +2071,38 @@ function refreshAll(allLists = false) {
   return refreshing;
 }
 
+// Foto lange gedrückt halten -> Preis selbst festlegen (geht bei jedem Produkt)
+function holdToEdit(box, item) {
+  let timer = null;
+  let start = null;
+  const stop = () => {
+    clearTimeout(timer);
+    timer = null;
+    box.classList.remove('holding');
+  };
+  box.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    start = [e.clientX, e.clientY];
+    box.classList.add('holding');
+    timer = setTimeout(() => {
+      stop();
+      navigator.vibrate?.(20);
+      const cur = items.find((x) => x.id === item.id) || item;
+      enterPrice(cur, `preis für "${cur.title}" selbst festlegen (in euro):`);
+    }, 550);
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (timer && start && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 10) stop();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => box.addEventListener(t, stop));
+}
+
 async function enterPrice(item, intro) {
   const input = await ask({
     title: 'preis',
     text: intro || `preis in euro für "${item.title}":`,
     input: { value: item.price != null ? item.price.toFixed(2).replace('.', ',') : '', placeholder: 'z.b. 34,90', mode: 'decimal' },
-    hint: item.manualPrice != null ? 'leer lassen = eintrag löschen' : '',
+    hint: item.manualPrice != null ? 'leer lassen = wieder den preis vom shop nehmen' : '',
     ok: 'speichern',
   });
   if (input == null) return;

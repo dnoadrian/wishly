@@ -14,7 +14,8 @@ Produktlink einfügen → Foto, Name und aktueller Preis des genauen Produkts (i
 - **Mehrere Listen** (z.B. Main, Weihnachten), umbenennen, löschen
 - **Login nur mit Namen:** Listen werden im Worker gespeichert und sind auf allen Geräten gleich.
   Unbekannter Name = neues Konto
-- **Preis eingeben**, wenn keiner oder nur ein unsicherer gefunden wurde
+- **Preis eingeben**, wenn keiner oder nur ein unsicherer gefunden wurde (Wishly fragt beim Hinzufügen sofort nach)
+- **Foto lange gedrückt halten** → Preis bei jedem Produkt selbst festlegen; gilt, bis man ihn leer speichert
 - Sortiert nach Preis (teuerstes zuerst), Gesamtpreis der Liste oben
 - **Als App installierbar:** Knopf „APP INSTALLIEREN“ (ist sichtbar, solange die App nicht installiert ist;
   kann der Browser nicht direkt installieren, zeigt er die Schritte für Android, iPhone, Samsung, PC).
@@ -66,8 +67,8 @@ Benutzer erscheinen in der Liste, sobald sie Wishly (wieder) öffnen oder sich a
 - **Preis falsch oder fehlt:** auf den Preis tippen → zeigt, woher er stammt; sonst „PREIS EINGEBEN“.
 - **„shop blockiert die automatische abfrage“:** der Shop hat einen Bot-Schutz (z.B. Cloudflare-Prüfung).
   Das Produkt wird trotzdem angelegt, den Preis einmal selbst eingeben.
-- **Amazon ohne Hauptangebot** (ausverkauft): es wird das günstigste Angebot aus „Alle Angebote“ genommen
-  (neu vor gebraucht); gibt es keins, steht „ausverkauft“ beim Produkt.
+- **Amazon ohne Hauptangebot** (ausverkauft): kein Preis, sondern der Hinweis „bei amazon ausverkauft“
+  mit dem günstigsten Angebot anderer Verkäufer; Preis bei Bedarf selbst eingeben.
 
 ## Hinweis
 
