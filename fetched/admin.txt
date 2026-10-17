@@ -1,1 +1,1 @@
-{"error":"admin ist nicht eingerichtet (secrets in cloudflare fehlen)"} 503
+{"error":"name oder passwort falsch"} 401
