@@ -15,6 +15,8 @@ jobs:
           W=https://dnoadrian.at/wishly
           curl -sS -m 20 "$W/" | grep -o 'WISHLY V[0-9.]*' > out/version.txt || true
           curl -sS -m 20 -X POST -H 'Content-Type: application/json' -d '{"user":"x","password":"x"}' -w ' %{http_code}' "$W/api/admin/login" > out/admin.txt || true
+          curl -sS -m 20 -o /dev/null -w '%{http_code}' "https://wishly.adri-cb7.workers.dev/" > out/workersdev.txt || true
+          curl -sS -m 20 -o /dev/null -w '%{http_code}' "https://dnoadrian.at/tracker" > out/tracker.txt || true
           ls -la out; cat out/*.log 2>/dev/null || true
       - run: |
           mkdir -p fetched && mv out/* fetched/
